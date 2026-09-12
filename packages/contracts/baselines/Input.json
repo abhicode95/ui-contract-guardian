@@ -1,0 +1,31 @@
+{
+  "name": "InputProps",
+  "filePath": "D:\\2026\\ui-contract-guardian\\packages\\ui\\src\\Input\\Input.tsx",
+  "props": [
+    {
+      "name": "size",
+      "required": false,
+      "type": "union",
+      "values": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    {
+      "name": "disabled",
+      "required": false,
+      "type": "boolean"
+    },
+    {
+      "name": "error",
+      "required": false,
+      "type": "boolean"
+    },
+    {
+      "name": "placeholder",
+      "required": false,
+      "type": "unknown"
+    }
+  ]
+}

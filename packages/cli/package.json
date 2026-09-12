@@ -1,0 +1,12 @@
+{
+  "name": "@ui-contract-guardian/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ui-contract-guardian": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ui-contract-guardian/analyzer": "0.1.0"
+  }
+}

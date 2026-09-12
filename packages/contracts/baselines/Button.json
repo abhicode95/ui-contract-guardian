@@ -1,0 +1,31 @@
+{
+  "name": "ButtonProps",
+  "filePath": "D:\\2026\\ui-contract-guardian\\packages\\ui\\src\\Button\\Button.tsx",
+  "props": [
+    {
+      "name": "variant",
+      "required": false,
+      "type": "union",
+      "values": [
+        "primary",
+        "secondary",
+        "danger"
+      ]
+    },
+    {
+      "name": "size",
+      "required": false,
+      "type": "union",
+      "values": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    {
+      "name": "loading",
+      "required": false,
+      "type": "boolean"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@ui-contract-guardian/diff",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@ui-contract-guardian/contracts": "0.1.0"
+  }
+}

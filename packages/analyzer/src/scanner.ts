@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import type { ComponentContract } from "@ui-contract-guardian/contracts";
+
+import { extractComponentContract } from "./extractor";
+
 export function findTsxFiles(directory: string): string[] {
   if (!fs.existsSync(directory)) {
     return [];
@@ -24,4 +28,20 @@ export function findTsxFiles(directory: string): string[] {
   }
 
   return files;
+}
+
+export function scanComponents(directory: string): ComponentContract[] {
+  const files = findTsxFiles(directory);
+
+  return files
+    .map((filePath) => {
+      try {
+        return extractComponentContract(filePath);
+      } catch (error) {
+        console.error(`Failed to analyze ${filePath}`, error);
+
+        return null;
+      }
+    })
+    .filter((contract): contract is ComponentContract => contract !== null);
 }

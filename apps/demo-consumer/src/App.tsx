@@ -1,6 +1,6 @@
 import { Button } from "@ui-contract-guardian/ui";
 
-export function App() {
+const App = () => {
   return (
     <main>
       <h1>UI Contract Guardian Demo</h1>
@@ -14,4 +14,6 @@ export function App() {
       </Button>
     </main>
   );
-}
+};
+
+export default App;

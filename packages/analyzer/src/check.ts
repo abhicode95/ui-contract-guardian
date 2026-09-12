@@ -1,52 +1,85 @@
 import path from "node:path";
 
+import { scanComponents } from "./scanner";
 import { checkContract } from "./checker";
 
-const componentPath = path.resolve(
-  process.cwd(),
-  "packages/ui/src/Button/Button.tsx",
-);
+const uiSrcPath = path.resolve(process.cwd(), "packages/ui/src");
 
-const baselinePath = path.resolve(
-  process.cwd(),
-  "packages/contracts/baselines/Button.json",
-);
+const baselineDir = path.resolve(process.cwd(), "packages/contracts/baselines");
 
 console.log("\n=== UI Contract Guardian ===\n");
+console.log(`Scanning: ${uiSrcPath}\n`);
 
-console.log(`Checking: ${componentPath}`);
-console.log(`Baseline: ${baselinePath}\n`);
+const contracts = scanComponents(uiSrcPath);
 
-try {
-  const result = checkContract(componentPath, baselinePath);
+if (contracts.length === 0) {
+  console.log("No components found.");
+  process.exit(0);
+}
 
-  console.log(`Component: ${result.current.name}\n`);
+let hasBreakingChanges = false;
+let hasChanges = false;
 
-  if (result.changes.length === 0) {
-    console.log("✓ No contract changes detected.");
-    process.exit(0);
-  }
+for (const contract of contracts) {
+  const componentName = contract.name.replace(/Props$/, "");
 
-  for (const change of result.changes) {
-    console.log(
-      `[${change.severity}] ` +
-        `${change.kind} | ` +
-        `${change.propName} | ` +
-        `breaking=${change.breaking}`,
+  const componentPath = contract.filePath;
+
+  const baselinePath = path.join(baselineDir, `${componentName}.json`);
+
+  console.log(`Checking: ${componentPath}`);
+  console.log(`Baseline: ${baselinePath}\n`);
+
+  try {
+    const result = checkContract(componentPath, baselinePath);
+
+    console.log(`Component: ${result.current.name}\n`);
+
+    if (result.changes.length === 0) {
+      console.log("✓ No contract changes detected.\n");
+      continue;
+    }
+
+    hasChanges = true;
+
+    for (const change of result.changes) {
+      console.log(
+        `[${change.severity}] ` +
+          `${change.kind} | ` +
+          `${change.propName} | ` +
+          `breaking=${change.breaking}`,
+      );
+
+      console.log(`  ${change.message}\n`);
+    }
+
+    if (result.hasBreakingChanges) {
+      hasBreakingChanges = true;
+      console.log("✗ Breaking contract changes detected.\n");
+    } else {
+      console.log("✓ No breaking contract changes detected.\n");
+    }
+  } catch (error) {
+    console.error(
+      `Failed to check ${componentName}:`,
+      error instanceof Error ? error.message : "Unknown error",
     );
 
-    console.log(`  ${change.message}\n`);
+    hasBreakingChanges = true;
   }
+}
 
-  if (result.hasBreakingChanges) {
-    console.log("✗ Breaking contract changes detected.");
-    process.exit(1);
-  }
+console.log("=== Summary ===");
 
-  console.log("✓ No breaking contract changes detected.");
-  process.exit(0);
-} catch (error) {
-  console.error(error instanceof Error ? error.message : "Unknown error");
-
+if (hasBreakingChanges) {
+  console.log("✗ Breaking contract changes detected.");
   process.exit(1);
 }
+
+if (hasChanges) {
+  console.log("✓ Contract changes detected, but none are breaking.");
+  process.exit(0);
+}
+
+console.log("✓ No contract changes detected.");
+process.exit(0);
