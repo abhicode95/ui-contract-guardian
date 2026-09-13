@@ -1,0 +1,4 @@
+{
+  "componentsDir": "packages/ui/src",
+  "contractsDir": "packages/contracts/baselines"
+}

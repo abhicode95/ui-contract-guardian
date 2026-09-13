@@ -1,48 +1,61 @@
+import fs from "node:fs";
 import path from "node:path";
 
+import type { ComponentContract } from "@ui-contract-guardian/contracts";
+
+import { diffContracts, type ContractChange } from "@ui-contract-guardian/diff";
 import { scanComponents } from "./scanner";
-import { checkContract } from "./checker";
 
-const uiSrcPath = path.resolve(process.cwd(), "packages/ui/src");
+export type CheckResult = {
+  componentsScanned: number;
+  componentsWithChanges: number;
+  breakingComponents: number;
+  hasBreakingChanges: boolean;
+};
 
-const baselineDir = path.resolve(process.cwd(), "packages/contracts/baselines");
+export function runCheck(
+  componentsDir: string,
+  contractsDir: string,
+): CheckResult {
+  const components = scanComponents(componentsDir);
 
-console.log("\n=== UI Contract Guardian ===\n");
-console.log(`Scanning: ${uiSrcPath}\n`);
+  let componentsWithChanges = 0;
+  let breakingComponents = 0;
 
-const contracts = scanComponents(uiSrcPath);
+  for (const current of components) {
+    const componentName = current.name.replace(/Props$/, "");
 
-if (contracts.length === 0) {
-  console.log("No components found.");
-  process.exit(0);
-}
+    const baselinePath = path.join(contractsDir, `${componentName}.json`);
 
-let hasBreakingChanges = false;
-let hasChanges = false;
+    console.log(`Checking: ${current.filePath}`);
 
-for (const contract of contracts) {
-  const componentName = contract.name.replace(/Props$/, "");
+    console.log(`Baseline: ${baselinePath}\n`);
 
-  const componentPath = contract.filePath;
+    if (!fs.existsSync(baselinePath)) {
+      console.log(`⚠ No baseline found for ${current.name}.\n`);
 
-  const baselinePath = path.join(baselineDir, `${componentName}.json`);
-
-  console.log(`Checking: ${componentPath}`);
-  console.log(`Baseline: ${baselinePath}\n`);
-
-  try {
-    const result = checkContract(componentPath, baselinePath);
-
-    console.log(`Component: ${result.current.name}\n`);
-
-    if (result.changes.length === 0) {
-      console.log("✓ No contract changes detected.\n");
       continue;
     }
 
-    hasChanges = true;
+    const baseline = JSON.parse(
+      fs.readFileSync(baselinePath, "utf-8"),
+    ) as ComponentContract;
 
-    for (const change of result.changes) {
+    const changes = diffContracts(baseline, current);
+
+    console.log(`Component: ${current.name}\n`);
+
+    if (changes.length === 0) {
+      console.log("✓ No contract changes detected.\n");
+
+      continue;
+    }
+
+    componentsWithChanges++;
+
+    let hasBreaking = false;
+
+    for (const change of changes) {
       console.log(
         `[${change.severity}] ` +
           `${change.kind} | ` +
@@ -51,35 +64,21 @@ for (const contract of contracts) {
       );
 
       console.log(`  ${change.message}\n`);
+
+      if (change.breaking) {
+        hasBreaking = true;
+      }
     }
 
-    if (result.hasBreakingChanges) {
-      hasBreakingChanges = true;
-      console.log("✗ Breaking contract changes detected.\n");
-    } else {
-      console.log("✓ No breaking contract changes detected.\n");
+    if (hasBreaking) {
+      breakingComponents++;
     }
-  } catch (error) {
-    console.error(
-      `Failed to check ${componentName}:`,
-      error instanceof Error ? error.message : "Unknown error",
-    );
-
-    hasBreakingChanges = true;
   }
+
+  return {
+    componentsScanned: components.length,
+    componentsWithChanges,
+    breakingComponents,
+    hasBreakingChanges: breakingComponents > 0,
+  };
 }
-
-console.log("=== Summary ===");
-
-if (hasBreakingChanges) {
-  console.log("✗ Breaking contract changes detected.");
-  process.exit(1);
-}
-
-if (hasChanges) {
-  console.log("✓ Contract changes detected, but none are breaking.");
-  process.exit(0);
-}
-
-console.log("✓ No contract changes detected.");
-process.exit(0);

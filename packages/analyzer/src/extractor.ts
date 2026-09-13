@@ -1,4 +1,10 @@
-import ts from "typescript";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+const ts: any = require("typescript").default ?? require("typescript");
+
 import type {
   ComponentContract,
   PropContract,
@@ -6,7 +12,7 @@ import type {
 } from "@ui-contract-guardian/contracts";
 
 export function extractComponentContract(filePath: string): ComponentContract {
-  const sourceCode = ts.sys.readFile(filePath) ?? "";
+  const sourceCode = readFileSync(filePath, "utf-8");
 
   const sourceFile = ts.createSourceFile(
     filePath,
@@ -14,7 +20,6 @@ export function extractComponentContract(filePath: string): ComponentContract {
     ts.ScriptTarget.Latest,
     true,
   );
-
   const typeAliases = new Map<string, ts.TypeAliasDeclaration>();
 
   sourceFile.forEachChild((node) => {
