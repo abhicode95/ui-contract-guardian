@@ -110,7 +110,19 @@ export function extractComponentContract(filePath: string): ComponentContract {
     ts.ScriptTarget.Latest,
     true,
   );
+  const diagnostics = sourceFile.parseDiagnostics ?? [];
 
+  if (diagnostics.length > 0) {
+    const messages = diagnostics
+      .map((diagnostic: any) =>
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+      )
+      .join("\n");
+
+    throw new Error(
+      `TypeScript syntax errors found in ${filePath}:\n${messages}`,
+    );
+  }
   const typeAliases = new Map<string, any>();
 
   sourceFile.forEachChild((node: any) => {

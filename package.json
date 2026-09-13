@@ -11,7 +11,8 @@
     "guardian": "tsx packages/cli/src/index.ts",
     "guardian:baseline": "tsx packages/cli/src/index.ts baseline",
     "guardian:check": "tsx packages/cli/src/index.ts check",
-    "guardian:report": "tsx packages/cli/src/index.ts report"
+    "guardian:report": "tsx packages/cli/src/index.ts report",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
@@ -19,7 +20,8 @@
     "@vitejs/plugin-react": "^6.1.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   },
   "dependencies": {
     "react": "^19.3.0",
