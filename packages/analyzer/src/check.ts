@@ -1,22 +1,22 @@
 import fs from "node:fs";
 import path from "node:path";
-import { assessContractImpact, type ContractImpact } from "./impact";
 
 import type { ComponentContract } from "@ui-contract-guardian/contracts";
-
 import { diffContracts, type ContractChange } from "@ui-contract-guardian/diff";
+
+import { assessContractImpact, type ContractImpact } from "./impact";
+
+import { findConsumers, type ConsumerReference } from "./consumers";
+
+import type { GuardianPolicy } from "./config";
 
 import { scanComponents } from "./scanner";
 
 export type ComponentCheckResult = {
   component: ComponentContract;
-
   changes: ContractChange[];
-
   impacts: ContractImpact[];
-
   hasBreakingChanges: boolean;
-
   baselinePath: string;
 };
 
@@ -25,17 +25,20 @@ export type CheckResult = {
   componentsWithChanges: number;
   breakingComponents: number;
   hasBreakingChanges: boolean;
+  shouldBlock: boolean;
   results: ComponentCheckResult[];
 };
 
 export function runCheck(
   componentsDir: string,
   contractsDir: string,
+  policy: GuardianPolicy,
 ): CheckResult {
   const components = scanComponents(componentsDir);
 
   let componentsWithChanges = 0;
   let breakingComponents = 0;
+  let shouldBlock = false;
 
   const results: ComponentCheckResult[] = [];
 
@@ -45,7 +48,6 @@ export function runCheck(
     const baselinePath = path.join(contractsDir, `${componentName}.json`);
 
     console.log(`Checking: ${current.filePath}`);
-
     console.log(`Baseline: ${baselinePath}\n`);
 
     if (!fs.existsSync(baselinePath)) {
@@ -93,9 +95,36 @@ export function runCheck(
       }
     }
 
-    const impacts = changes.map((change) =>
-      assessContractImpact(current.name.replace(/Props$/, ""), change),
-    );
+    const impacts = changes.map((change) => {
+      let consumers: ConsumerReference[] = [];
+
+      if (change.kind === "UNION_VALUE_REMOVED") {
+        const consumerResult = findConsumers(
+          componentsDir,
+          componentName,
+          change.propName,
+          change.details?.removedValue,
+        );
+
+        consumers = consumerResult.consumers;
+      } else {
+        const consumerResult = findConsumers(
+          componentsDir,
+          componentName,
+          change.propName,
+        );
+
+        consumers = consumerResult.consumers;
+      }
+
+      return assessContractImpact(componentName, change, consumers, policy);
+    });
+
+    for (const impact of impacts) {
+      if (impact.mergeDecision === "BLOCK") {
+        shouldBlock = true;
+      }
+    }
 
     results.push({
       component: current,
@@ -111,6 +140,7 @@ export function runCheck(
     componentsWithChanges,
     breakingComponents,
     hasBreakingChanges: breakingComponents > 0,
+    shouldBlock,
     results,
   };
 }

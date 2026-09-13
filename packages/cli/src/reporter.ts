@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { CheckResult } from "@ui-contract-guardian/analyzer";
 
 export function generateMarkdownReport(result: CheckResult): string {
@@ -40,14 +42,15 @@ export function generateMarkdownReport(result: CheckResult): string {
 
     for (const change of componentResult.changes) {
       lines.push(
-        `| ${change.severity} | ${change.message} | ${change.propName} | ${change.breaking ? "❌" : "✅"} |`,
+        `| ${change.severity} | ${change.message} | ${change.propName} | ${
+          change.breaking ? "❌" : "✅"
+        } |`,
       );
     }
 
     lines.push("");
 
     lines.push("#### Impact analysis");
-
     lines.push("");
 
     for (const impact of componentResult.impacts) {
@@ -56,6 +59,37 @@ export function generateMarkdownReport(result: CheckResult): string {
       lines.push("");
 
       lines.push(`- **Property:** \`${impact.property}\``);
+
+      lines.push(`- **Change:** \`${impact.changeKind}\``);
+
+      lines.push(`- **Blast radius:** ${impact.blastRadius} consumer(s)`);
+
+      if (impact.removedValue) {
+        lines.push(`- **Removed value:** \`${impact.removedValue}\``);
+      }
+
+      if (impact.addedValue) {
+        lines.push(`- **Added value:** \`${impact.addedValue}\``);
+      }
+
+      lines.push("");
+
+      if (impact.consumers.length > 0) {
+        lines.push("**Affected consumers:**");
+        lines.push("");
+
+        for (const consumer of impact.consumers) {
+          const relativePath = path.relative(process.cwd(), consumer.filePath);
+
+          lines.push(`- \`${relativePath}:${consumer.line}\``);
+        }
+
+        lines.push("");
+      } else {
+        lines.push("**Affected consumers:** None detected");
+
+        lines.push("");
+      }
 
       lines.push(`- **Impact:** ${impact.impact}`);
 

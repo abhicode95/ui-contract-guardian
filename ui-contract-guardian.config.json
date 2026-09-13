@@ -1,4 +1,9 @@
 {
   "componentsDir": "packages/ui/src",
-  "contractsDir": "packages/contracts/baselines"
+  "contractsDir": "packages/contracts/baselines",
+  "policy": {
+    "HIGH": "BLOCK",
+    "MEDIUM": "REVIEW",
+    "LOW": "ALLOW"
+  }
 }

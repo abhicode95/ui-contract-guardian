@@ -1,33 +1,34 @@
 import type { ContractChange } from "@ui-contract-guardian/diff";
 
+import type { ConsumerReference } from "./consumers";
+import type { GuardianPolicy } from "./config";
+
 export type ImpactRisk = "HIGH" | "MEDIUM" | "LOW";
 
 export type MergeDecision = "BLOCK" | "REVIEW" | "ALLOW";
 
 export interface ContractImpact {
   component: string;
-
   property: string;
-
   changeKind: ContractChange["kind"];
-
   risk: ImpactRisk;
-
   impact: string;
-
   recommendation: string;
-
   mergeDecision: MergeDecision;
-
+  consumers: ConsumerReference[];
+  blastRadius: number;
   removedValue?: string;
-
   addedValue?: string;
 }
 
 export function assessContractImpact(
   component: string,
   change: ContractChange,
+  consumers: ConsumerReference[] = [],
+  policy: GuardianPolicy,
 ): ContractImpact {
+  const blastRadius = consumers.length;
+
   switch (change.kind) {
     case "PROP_REMOVED":
       return {
@@ -42,7 +43,9 @@ export function assessContractImpact(
         recommendation:
           "Restore the prop or identify and migrate " +
           "all consumers before merging.",
-        mergeDecision: "BLOCK",
+        mergeDecision: policy.HIGH,
+        consumers,
+        blastRadius,
       };
 
     case "PROP_BECAME_REQUIRED":
@@ -57,7 +60,9 @@ export function assessContractImpact(
         recommendation:
           "Provide a backward-compatible default or " +
           "update every consumer before merging.",
-        mergeDecision: "BLOCK",
+        mergeDecision: policy.HIGH,
+        consumers,
+        blastRadius,
       };
 
     case "TYPE_CHANGED":
@@ -71,7 +76,9 @@ export function assessContractImpact(
           "may fail type checking or behave incorrectly.",
         recommendation:
           "Preserve the existing type or migrate all " + "affected consumers.",
-        mergeDecision: "BLOCK",
+        mergeDecision: policy.HIGH,
+        consumers,
+        blastRadius,
       };
 
     case "UNION_VALUE_REMOVED":
@@ -86,7 +93,9 @@ export function assessContractImpact(
         recommendation:
           "Restore the value or migrate every consumer " +
           `using "${change.details?.removedValue}".`,
-        mergeDecision: "BLOCK",
+        mergeDecision: policy.HIGH,
+        consumers,
+        blastRadius,
         removedValue: change.details?.removedValue,
       };
 
@@ -101,7 +110,9 @@ export function assessContractImpact(
           "the new prop does not replace an existing contract.",
         recommendation:
           "No migration required. Add consumer usage when needed.",
-        mergeDecision: "ALLOW",
+        mergeDecision: policy.LOW,
+        consumers,
+        blastRadius,
       };
 
     case "PROP_BECAME_OPTIONAL":
@@ -114,7 +125,9 @@ export function assessContractImpact(
           "Existing consumers remain compatible because " +
           "the component now accepts fewer required inputs.",
         recommendation: "No migration required.",
-        mergeDecision: "ALLOW",
+        mergeDecision: policy.LOW,
+        consumers,
+        blastRadius,
       };
 
     case "UNION_VALUE_ADDED":
@@ -129,7 +142,9 @@ export function assessContractImpact(
         recommendation:
           "No migration required. Consumers may adopt " +
           `the new "${change.details?.addedValue}" value.`,
-        mergeDecision: "ALLOW",
+        mergeDecision: policy.LOW,
+        consumers,
+        blastRadius,
         addedValue: change.details?.addedValue,
       };
 
@@ -141,7 +156,9 @@ export function assessContractImpact(
         risk: "MEDIUM",
         impact: "The contract changed and may affect downstream consumers.",
         recommendation: "Review affected consumers before merging.",
-        mergeDecision: "REVIEW",
+        mergeDecision: policy.MEDIUM,
+        consumers,
+        blastRadius,
       };
   }
 }

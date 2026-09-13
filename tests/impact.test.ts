@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { ContractChange } from "@ui-contract-guardian/diff";
+import {
+  assessContractImpact,
+  defaultPolicy,
+} from "@ui-contract-guardian/analyzer";
 
-import { assessContractImpact } from "@ui-contract-guardian/analyzer";
+import type { ContractChange } from "@ui-contract-guardian/diff";
 
 function change(overrides: Partial<ContractChange>): ContractChange {
   return {
@@ -25,6 +28,8 @@ describe("assessContractImpact", () => {
         propName: "loading",
         breaking: true,
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.risk).toBe("HIGH");
@@ -43,6 +48,8 @@ describe("assessContractImpact", () => {
         propName: "variant",
         breaking: true,
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.risk).toBe("HIGH");
@@ -63,6 +70,8 @@ describe("assessContractImpact", () => {
           newType: "number",
         },
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.risk).toBe("HIGH");
@@ -82,6 +91,8 @@ describe("assessContractImpact", () => {
           removedValue: "danger",
         },
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.removedValue).toBe("danger");
@@ -100,6 +111,8 @@ describe("assessContractImpact", () => {
         propName: "icon",
         breaking: false,
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.risk).toBe("LOW");
@@ -119,6 +132,8 @@ describe("assessContractImpact", () => {
           addedValue: "success",
         },
       }),
+      [],
+      defaultPolicy,
     );
 
     expect(result.addedValue).toBe("success");

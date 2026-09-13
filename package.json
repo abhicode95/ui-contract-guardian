@@ -12,6 +12,7 @@
     "guardian:baseline": "tsx packages/cli/src/index.ts baseline",
     "guardian:check": "tsx packages/cli/src/index.ts check",
     "guardian:report": "tsx packages/cli/src/index.ts report",
+    "guardian:json": "tsx packages/cli/src/index.ts json",
     "test": "vitest run"
   },
   "devDependencies": {

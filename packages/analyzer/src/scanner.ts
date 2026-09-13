@@ -18,6 +18,11 @@ export function findTsxFiles(directory: string): string[] {
     const fullPath = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
+      // Consumer fixtures are not component definitions.
+      if (entry.name === "consumers") {
+        continue;
+      }
+
       files.push(...findTsxFiles(fullPath));
       continue;
     }
