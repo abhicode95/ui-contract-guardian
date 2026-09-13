@@ -25,7 +25,7 @@
     {
       "name": "placeholder",
       "required": false,
-      "type": "unknown"
+      "type": "string"
     }
   ]
 }

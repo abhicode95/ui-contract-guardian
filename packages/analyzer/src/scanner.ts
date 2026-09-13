@@ -7,7 +7,7 @@ import { extractComponentContract } from "./extractor";
 
 export function findTsxFiles(directory: string): string[] {
   if (!fs.existsSync(directory)) {
-    return [];
+    throw new Error(`Components directory not found: ${directory}`);
   }
 
   const files: string[] = [];
@@ -33,15 +33,21 @@ export function findTsxFiles(directory: string): string[] {
 export function scanComponents(directory: string): ComponentContract[] {
   const files = findTsxFiles(directory);
 
-  return files
-    .map((filePath) => {
-      try {
-        return extractComponentContract(filePath);
-      } catch (error) {
-        console.error(`Failed to analyze ${filePath}`, error);
+  if (files.length === 0) {
+    throw new Error(`No .tsx components found in: ${directory}`);
+  }
 
-        return null;
-      }
-    })
-    .filter((contract): contract is ComponentContract => contract !== null);
+  return files.map((filePath) => {
+    console.log(`Analyzing component: ${filePath}`);
+
+    try {
+      return extractComponentContract(filePath);
+    } catch (error) {
+      throw new Error(
+        `Failed to analyze component: ${filePath}\n${
+          error instanceof Error ? error.message : "Unknown analyzer error"
+        }`,
+      );
+    }
+  });
 }

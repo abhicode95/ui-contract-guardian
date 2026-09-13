@@ -4,13 +4,22 @@ import path from "node:path";
 import type { ComponentContract } from "@ui-contract-guardian/contracts";
 
 import { diffContracts, type ContractChange } from "@ui-contract-guardian/diff";
+
 import { scanComponents } from "./scanner";
+
+export type ComponentCheckResult = {
+  component: ComponentContract;
+  changes: ContractChange[];
+  hasBreakingChanges: boolean;
+  baselinePath: string;
+};
 
 export type CheckResult = {
   componentsScanned: number;
   componentsWithChanges: number;
   breakingComponents: number;
   hasBreakingChanges: boolean;
+  results: ComponentCheckResult[];
 };
 
 export function runCheck(
@@ -21,6 +30,8 @@ export function runCheck(
 
   let componentsWithChanges = 0;
   let breakingComponents = 0;
+
+  const results: ComponentCheckResult[] = [];
 
   for (const current of components) {
     const componentName = current.name.replace(/Props$/, "");
@@ -47,32 +58,41 @@ export function runCheck(
 
     if (changes.length === 0) {
       console.log("✓ No contract changes detected.\n");
+    } else {
+      componentsWithChanges++;
 
-      continue;
-    }
+      let hasBreaking = false;
 
-    componentsWithChanges++;
+      for (const change of changes) {
+        console.log(
+          `[${change.severity}] ` +
+            `${change.kind} | ` +
+            `${change.propName} | ` +
+            `breaking=${change.breaking}`,
+        );
 
-    let hasBreaking = false;
+        console.log(`  ${change.message}\n`);
 
-    for (const change of changes) {
-      console.log(
-        `[${change.severity}] ` +
-          `${change.kind} | ` +
-          `${change.propName} | ` +
-          `breaking=${change.breaking}`,
-      );
+        if (change.breaking) {
+          hasBreaking = true;
+        }
+      }
 
-      console.log(`  ${change.message}\n`);
+      if (hasBreaking) {
+        breakingComponents++;
 
-      if (change.breaking) {
-        hasBreaking = true;
+        console.log("✗ Breaking contract changes detected.\n");
+      } else {
+        console.log("✓ No breaking contract changes detected.\n");
       }
     }
 
-    if (hasBreaking) {
-      breakingComponents++;
-    }
+    results.push({
+      component: current,
+      changes,
+      hasBreakingChanges: changes.some((change) => change.breaking),
+      baselinePath,
+    });
   }
 
   return {
@@ -80,5 +100,6 @@ export function runCheck(
     componentsWithChanges,
     breakingComponents,
     hasBreakingChanges: breakingComponents > 0,
+    results,
   };
 }

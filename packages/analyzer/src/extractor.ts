@@ -11,6 +11,96 @@ import type {
   PropType,
 } from "@ui-contract-guardian/contracts";
 
+function getPrimitiveType(typeNode: any): PropType {
+  switch (typeNode.kind) {
+    case ts.SyntaxKind.StringKeyword:
+      return "string";
+
+    case ts.SyntaxKind.NumberKeyword:
+      return "number";
+
+    case ts.SyntaxKind.BooleanKeyword:
+      return "boolean";
+
+    case ts.SyntaxKind.ObjectKeyword:
+      return "object";
+
+    default:
+      return "unknown";
+  }
+}
+
+function getUnionValues(unionNode: any, sourceFile: any): string[] {
+  return unionNode.types
+    .map((member: any) => {
+      if (ts.isLiteralTypeNode(member) && ts.isStringLiteral(member.literal)) {
+        return member.literal.text;
+      }
+
+      return null;
+    })
+    .filter((value: string | null): value is string => value !== null);
+}
+
+function resolvePropType(
+  typeNode: any,
+  typeAliases: Map<string, any>,
+  sourceFile: any,
+): Pick<PropContract, "type" | "values"> {
+  // Direct primitive types
+  const primitiveType = getPrimitiveType(typeNode);
+
+  if (primitiveType !== "unknown") {
+    return {
+      type: primitiveType,
+    };
+  }
+
+  // Direct union
+  if (ts.isUnionTypeNode(typeNode)) {
+    const values = getUnionValues(typeNode, sourceFile);
+
+    if (values.length > 0) {
+      return {
+        type: "union",
+        values,
+      };
+    }
+  }
+
+  // Type alias
+  if (ts.isTypeReferenceNode(typeNode)) {
+    const typeName = typeNode.typeName.getText(sourceFile);
+
+    const alias = typeAliases.get(typeName);
+
+    if (alias) {
+      if (ts.isUnionTypeNode(alias.type)) {
+        const values = getUnionValues(alias.type, sourceFile);
+
+        if (values.length > 0) {
+          return {
+            type: "union",
+            values,
+          };
+        }
+      }
+
+      const aliasPrimitiveType = getPrimitiveType(alias.type);
+
+      if (aliasPrimitiveType !== "unknown") {
+        return {
+          type: aliasPrimitiveType,
+        };
+      }
+    }
+  }
+
+  return {
+    type: "unknown",
+  };
+}
+
 export function extractComponentContract(filePath: string): ComponentContract {
   const sourceCode = readFileSync(filePath, "utf-8");
 
@@ -20,9 +110,10 @@ export function extractComponentContract(filePath: string): ComponentContract {
     ts.ScriptTarget.Latest,
     true,
   );
-  const typeAliases = new Map<string, ts.TypeAliasDeclaration>();
 
-  sourceFile.forEachChild((node) => {
+  const typeAliases = new Map<string, any>();
+
+  sourceFile.forEachChild((node: any) => {
     if (ts.isTypeAliasDeclaration(node)) {
       typeAliases.set(node.name.getText(sourceFile), node);
     }
@@ -32,71 +123,43 @@ export function extractComponentContract(filePath: string): ComponentContract {
 
   let componentName = "UnknownComponent";
 
-  sourceFile.forEachChild((node) => {
-    if (ts.isInterfaceDeclaration(node)) {
-      componentName = node.name.getText(sourceFile);
+  sourceFile.forEachChild((node: any) => {
+    if (!ts.isInterfaceDeclaration(node)) {
+      return;
+    }
 
-      node.members.forEach((member) => {
-        if (!ts.isPropertySignature(member)) {
-          return;
-        }
+    componentName = node.name.getText(sourceFile);
 
-        const name = member.name.getText(sourceFile);
+    node.members.forEach((member: any) => {
+      if (!ts.isPropertySignature(member)) {
+        return;
+      }
 
-        const required = !member.questionToken;
+      const name = member.name.getText(sourceFile);
 
-        const typeNode = member.type;
+      const required = !member.questionToken;
 
-        if (!typeNode) {
-          props.push({
-            name,
-            required,
-            type: "unknown",
-          });
+      const typeNode = member.type;
 
-          return;
-        }
-
-        if (ts.isTypeReferenceNode(typeNode)) {
-          const typeName = typeNode.typeName.getText(sourceFile);
-
-          const alias = typeAliases.get(typeName);
-
-          if (alias && ts.isUnionTypeNode(alias.type)) {
-            const values = alias.type.types.map((typeNode) => {
-              const value = typeNode.getText(sourceFile);
-
-              return value.replace(/^["']|["']$/g, "");
-            });
-
-            props.push({
-              name,
-              required,
-              type: "union",
-              values,
-            });
-
-            return;
-          }
-        }
-
-        if (typeNode.kind === ts.SyntaxKind.BooleanKeyword) {
-          props.push({
-            name,
-            required,
-            type: "boolean",
-          });
-
-          return;
-        }
-
+      if (!typeNode) {
         props.push({
           name,
           required,
           type: "unknown",
         });
+
+        return;
+      }
+
+      const resolved = resolvePropType(typeNode, typeAliases, sourceFile);
+
+      props.push({
+        name,
+        required,
+        type: resolved.type,
+        ...(resolved.values ? { values: resolved.values } : {}),
       });
-    }
+    });
   });
 
   return {

@@ -22,3 +22,5 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+ui-contract-guardian-report.md
