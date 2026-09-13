@@ -10,7 +10,8 @@
   "scripts": {
     "guardian": "tsx packages/cli/src/index.ts",
     "guardian:baseline": "tsx packages/cli/src/index.ts baseline",
-    "guardian:check": "tsx packages/cli/src/index.ts check"
+    "guardian:check": "tsx packages/cli/src/index.ts check",
+    "guardian:report": "tsx packages/cli/src/index.ts report"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
