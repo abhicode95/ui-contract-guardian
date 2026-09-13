@@ -192,10 +192,7 @@ This lets teams choose their enforcement level without changing the analyzer.
 Suppose the baseline supports:
 
 ```ts
-type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "danger";
+type ButtonVariant = "primary" | "secondary" | "danger";
 ```
 
 and a PR removes `danger`.
@@ -321,11 +318,3 @@ Potential future work:
 6. Historical contract-change analytics
 
 The core deterministic pipeline should remain the source of truth.
-
-## Interview summary
-
-> I built UI Contract Guardian because shared React component changes often fail at the consumer boundary rather than inside the component itself. The tool parses TSX contracts, diffs them against baselines, discovers affected consumers, calculates blast radius, generates migration guidance, and applies configurable CI policy. The interesting engineering decision was separating deterministic risk detection from policy enforcement so teams can choose whether a risk should block, require review, or be allowed.
-
-## License
-
-Add the license you intend to use before publishing the repository.
