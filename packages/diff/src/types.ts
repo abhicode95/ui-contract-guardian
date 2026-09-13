@@ -1,3 +1,5 @@
+import type { PropType } from "@ui-contract-guardian/contracts";
+
 export type ChangeSeverity = "HIGH" | "MEDIUM" | "LOW";
 
 export type ChangeKind =
@@ -9,10 +11,27 @@ export type ChangeKind =
   | "UNION_VALUE_ADDED"
   | "TYPE_CHANGED";
 
+export interface ContractChangeDetails {
+  oldType?: PropType;
+  newType?: PropType;
+
+  removedValue?: string;
+  addedValue?: string;
+
+  oldRequired?: boolean;
+  newRequired?: boolean;
+}
+
 export interface ContractChange {
   kind: ChangeKind;
+
   severity: ChangeSeverity;
+
   propName: string;
+
   message: string;
+
   breaking: boolean;
+
+  details?: ContractChangeDetails;
 }

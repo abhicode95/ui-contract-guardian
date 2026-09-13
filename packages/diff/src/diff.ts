@@ -41,6 +41,10 @@ export function diffContracts(
         propName: oldProp.name,
         message: `Prop "${oldProp.name}" became required.`,
         breaking: true,
+        details: {
+          oldRequired: false,
+          newRequired: true,
+        },
       });
     }
 
@@ -51,6 +55,10 @@ export function diffContracts(
         propName: oldProp.name,
         message: `Prop "${oldProp.name}" became optional.`,
         breaking: false,
+        details: {
+          oldRequired: true,
+          newRequired: false,
+        },
       });
     }
 
@@ -63,6 +71,10 @@ export function diffContracts(
           `Prop "${oldProp.name}" changed type from ` +
           `"${oldProp.type}" to "${newProp.type}".`,
         breaking: true,
+        details: {
+          oldType: oldProp.type,
+          newType: newProp.type,
+        },
       });
 
       continue;
@@ -82,6 +94,9 @@ export function diffContracts(
             message:
               `Value "${value}" was removed ` + `from "${oldProp.name}".`,
             breaking: true,
+            details: {
+              removedValue: value,
+            },
           });
         }
       }
@@ -94,6 +109,9 @@ export function diffContracts(
             propName: oldProp.name,
             message: `Value "${value}" was added ` + `to "${oldProp.name}".`,
             breaking: false,
+            details: {
+              addedValue: value,
+            },
           });
         }
       }

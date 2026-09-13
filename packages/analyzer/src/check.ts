@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { assessContractImpact, type ContractImpact } from "./impact";
 
 import type { ComponentContract } from "@ui-contract-guardian/contracts";
 
@@ -9,8 +10,13 @@ import { scanComponents } from "./scanner";
 
 export type ComponentCheckResult = {
   component: ComponentContract;
+
   changes: ContractChange[];
+
+  impacts: ContractImpact[];
+
   hasBreakingChanges: boolean;
+
   baselinePath: string;
 };
 
@@ -87,9 +93,14 @@ export function runCheck(
       }
     }
 
+    const impacts = changes.map((change) =>
+      assessContractImpact(current.name.replace(/Props$/, ""), change),
+    );
+
     results.push({
       component: current,
       changes,
+      impacts,
       hasBreakingChanges: changes.some((change) => change.breaking),
       baselinePath,
     });

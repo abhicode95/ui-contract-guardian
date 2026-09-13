@@ -45,6 +45,24 @@ export function generateMarkdownReport(result: CheckResult): string {
     }
 
     lines.push("");
+
+    lines.push("#### Impact analysis");
+
+    lines.push("");
+
+    for (const impact of componentResult.impacts) {
+      lines.push(`**${impact.risk} risk — ${impact.mergeDecision}**`);
+
+      lines.push("");
+
+      lines.push(`- **Property:** \`${impact.property}\``);
+
+      lines.push(`- **Impact:** ${impact.impact}`);
+
+      lines.push(`- **Recommendation:** ${impact.recommendation}`);
+
+      lines.push("");
+    }
   }
 
   if (result.hasBreakingChanges) {
