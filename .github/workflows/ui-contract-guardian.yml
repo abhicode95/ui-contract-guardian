@@ -6,6 +6,10 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   contract-check:
     name: Check UI Contracts
@@ -13,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -25,4 +29,88 @@ jobs:
         run: npm ci
 
       - name: Run UI Contract Guardian
-        run: npm run guardian:check
+        id: guardian
+        continue-on-error: true
+        run: npm run guardian:report
+
+      - name: Publish PR report
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v8
+        env:
+          REPORT_PATH: ui-contract-guardian-report.md
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+
+            const marker = "<!-- ui-contract-guardian -->";
+
+            let body;
+
+            if (fs.existsSync(process.env.REPORT_PATH)) {
+              const report = fs.readFileSync(
+                process.env.REPORT_PATH,
+                "utf8",
+              );
+
+              body = `${marker}\n${report}`;
+            } else {
+              body = `${marker}
+
+            # UI Contract Guardian
+
+            ## ❌ Analysis failed
+
+            The UI Contract Guardian could not complete analysis.
+
+            Check the workflow logs for the analyzer error.
+            `;
+            }
+
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            const comments =
+              await github.paginate(
+                github.rest.issues.listComments,
+                {
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  per_page: 100,
+                },
+              );
+
+            const existingComment = comments.find(
+              (comment) =>
+                comment.user?.type === "Bot" &&
+                comment.body?.includes(marker),
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body,
+              });
+
+              console.log(
+                `Updated existing PR comment: ${existingComment.id}`,
+              );
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body,
+              });
+
+              console.log("Created UI Contract Guardian PR comment");
+            }
+
+      - name: Fail if contracts are broken
+        if: steps.guardian.outcome == 'failure'
+        run: |
+          echo "UI Contract Guardian detected a failure."
+          exit 1
